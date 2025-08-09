@@ -1,0 +1,29 @@
+services:
+  navidrome:
+    image: "deluan/navidrome:${IMAGE_TAG:-latest}"
+    container_name: "${CONTAINER_NAME:-navidrome}"
+    user: ${DOCKER_PUID:?}:${DOCKER_PGID:?}
+    ports:
+      - "${HOST_IP:?}:4533:4533"
+    restart: unless-stopped
+    environment:
+      # Optional: put your config options customization here. Examples:
+      ND_SCANSCHEDULE: 24h
+      ND_LOGLEVEL: info  
+      ND_SESSIONTIMEOUT: 24h
+      ND_BASEURL: ""
+      TZ: "${TZ}"
+    volumes:
+      - "${CONTAINER_VOLUME:-./volume_data}:/data"
+      - "${NAVIDROME_MUSIC_FOLDER:?}:/music:ro"
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.router.navidrome.entrypoints=https-internal"
+      - "traefik.http.router.navidrome.entrypoints=https-external"
+      - "traefik.http.router.navidrome.rule=Host(`music-navi.${DOMAIN_NAME:-local}`)"
+      - "traefik.http.router.navidrome.tls.certresolver=letsencrypt"
+      - "traefik.http.router.navidrome.service=navidrome"
+      - "traefik.http.services.navidrome.loadbalancer.server.url=http://[HOST_IP or SERVER_IP]:4533"
+
+    

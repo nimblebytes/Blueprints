@@ -1,0 +1,25 @@
+########################### Services     
+services:
+
+  ## Portainer - WebUI for Containers
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:2.20.3
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - socketproxy_net
+    command: -H tcp://socketproxy_portainer:2375
+    #command: -H unix:///var/run/docker.sock
+    ports:
+      - "${HOST_IP:?}:9000:9000"
+      #- 9000:9000
+    volumes:
+      - ${DOCKER_VOLUMES:?}/portainer/data:/data
+      - ${XDG_RUNTIME_DIR}/docker.sock:/var/run/docker.sock ##only for direct access to the docker socket
+    environment:
+      - TZ=$TZ
+      - DOCKER_HOST=tcp://socketproxy_portainer:2375 
+
+  

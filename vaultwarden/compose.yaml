@@ -1,0 +1,21 @@
+name: VaultWarden
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:${IMAGE_TAG:-latest}
+    container_name: "${CONTAINER_NAME:-vaultwarden}"
+    user: ${DOCKER_PUID:?}:${DOCKER_PGID:?}
+    ports:
+      - "${HOST_IP:?}:9980:80"
+    restart: unless-stopped
+    volumes:
+      - "${CONTAINER_VOLUME:-./volume_data}:/data" 
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.router.vaultwarden.entrypoint=https-internal"
+      - "traefik.http.router.vaultwarden.entrypoint=https-external"
+      - "traefik.http.router.vaultwarden.rule=Host(`vault.${DOMAIN_NAME:-local}`)"
+      - "traefik.http.router.vaultwarden.tls.certresolver=letsencrypt"
+      - "traefik.http.router.vaultwarden.service=vaultwarden"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.url=http://${HOST_IP:?}:9980"

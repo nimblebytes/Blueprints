@@ -1,0 +1,30 @@
+########################### Secrets
+secrets:
+  nordlynx_token:
+    file: ${DOCKER_SECRETS:?}/vpn-lynx.token
+
+########################### Services
+services:
+
+################## Services - VPN
+  vpn_lynx_test:
+    container_name: NordVPN_Lynx
+    image: ghcr.io/bubuntux/nordlynx
+    cap_add:
+      - NET_ADMIN #required
+    environment:
+      - PRIVATE_KEY_FILE=/run/secrets/nordlynx_token
+      #- COUNTRY_CODE=${COUNTRY_CODE_LYNX}
+      - QUERY=${QUERY:?}
+      - DNS=${DNS:?}
+      - NET_LOCAL=${NET_LOCAL}  # So it can be accessed within the local network
+      - TABLE=auto  # Recommend: adds routes to the default table and enables special handling of default routes
+      - TZ=${TZ_VPN:-ETC/UTC}
+    ports:
+      - ${HOST_IP}:8080:8080
+    secrets:
+      - nordlynx_token 
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1  # Recomended if using ipv4 only
+    restart: unless-stopped
+

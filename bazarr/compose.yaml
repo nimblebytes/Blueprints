@@ -1,0 +1,40 @@
+########################### STACK PROPERTIES
+name: "bazarr"
+
+
+########################### SERVICES  
+services:
+  bazarr:
+    image: ghcr.io/hotio/bazarr${IMAGE_TAG:-latest}
+    container_name: "bazarr"
+    restart: unless-stopped
+    user: ${PUID_DOCKER:?}:${PGID_DOCKER:?}       ## Overrides the user used to run the container process.
+    ports:
+      - "${HOST_IP:?}:6767:6767"
+    ## File containing environment variables to be inserted into the container
+    env_file: 
+      - .env.bazarr
+    environment:
+      - TZ=${TZ:-Europe/Berlin}    
+    volumes:
+      - "${DOCKER_VOLUMES:?}/bazarr/config:/config" 
+      - "${DOCKER_VOLUMES:?}/bazarr/data:/data" 
+
+    labels:
+      - homepage.group=Containers
+      - homepage.name=bazarr
+      - homepage.icon=bazarr.png
+      - homepage.href=https://${HOSTNAME:?}.${DOMAIN_NAME:?}/bazarr
+      - homepage.description=Index Manager
+      - homepage.widget.type=bazarr
+      - homepage.widget.url=https://${HOSTNAME:?}.${DOMAIN_NAME:?}/bazarr
+      - homepage.widget.key={{HOMEPAGE_FILE_BAZARR_API}}
+
+      - "traefik.enable=true"
+      - "traefik.http.routers.bazarr.entrypoints=https-internal"     ## Only available for the internal network
+      - "traefik.http.routers.bazarr.rule=Host(`${HOSTNAME:?}.${DOMAIN_NAME:?}`) && PathPrefix(`/bazarr`)"
+      - "traefik.http.routers.bazarr.service=bazarr"
+      - "traefik.http.routers.bazarr.tls.certresolver=letsencrypt_dns"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
+      - "traefik.http.services.bazarr.loadbalancer.server.scheme=http"
+      

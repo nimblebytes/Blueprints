@@ -1,0 +1,32 @@
+########################### COMPOSE DESCRIPTION ###########################
+##
+## Compose file to start a VPN container to obtain the private key that is need for the Nordlynx container
+##
+###########################################################################
+
+########################### Secrets
+secrets:
+  nordvpn_token:
+    file: ${DOCKER_SECRETS:?}/vpn-access.token
+
+########################### Services
+services:
+
+################## Services - VPN
+  vpn:
+    container_name: NordVPN
+    image: ghcr.io/bubuntux/nordvpn
+    cap_add:
+      - NET_ADMIN               # Required
+      - NET_RAW                 # Required
+    environment:                # Review https://github.com/bubuntux/nordvpn#environment-variables    
+      - TOKENFILE=/run/secrets/nordvpn_token
+      - CONNECT=${COUNTRY_CODE:?}
+      - TECHNOLOGY=NordLynx
+      - NETWORK=10.0.31.0/24  # So it can be accessed within the local network
+      - DNS=${DNS}
+      - TZ=${TZ_VPN:-ETC/UTC}
+    secrets:
+      - nordvpn_token
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1  # Recomended if using ipv4 only

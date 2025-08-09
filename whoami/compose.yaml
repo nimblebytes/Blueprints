@@ -1,0 +1,14 @@
+
+########################### SERVICES
+services: 
+
+  whoami:
+    image: traefik/whoami:v1.10.2
+    container_name: "whoami"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${DOMMAIN_NAME:?}`)"
+      - "traefik.http.routers.whoami.entrypoints=https-internal"            ## Only available for the internal network
+      - "traefik.http.routers.whoami.tls.certresolver=resolver_letsencrypt_testing"  ## Options: resolver_letsencrypt_testing; resolver_letsencrypt; resolver_letsencrypt_dns
+      
