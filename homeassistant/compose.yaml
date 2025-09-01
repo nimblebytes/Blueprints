@@ -5,7 +5,7 @@ services:
     image: ghcr.io/home-assistant/home-assistant:${IMAGE_TAG:-latest}
     container_name: "${CONTAINER_NAME:-service_name}"
     # privileged: true
-    user: ${DOCKER_PUID:?}:${DOCKER_PGID:?}       ## Overrides the user used to run the container process.
+    user: ${PUID_DOCKER:?}:${PGID_DOCKER:?}       ## Overrides the user used to run the container process.
     network_mode: host
     ports:
       - ${HOST_IP:?}:8123:8123
