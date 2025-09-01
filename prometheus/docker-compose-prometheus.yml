@@ -1,0 +1,30 @@
+version: "3.7"
+
+#############  Networks #############
+networks:
+  data_net:
+    external:
+      name: data_net
+
+#############  Services  #############
+services:
+  ## Prometheus - Data collection Agent / Storage
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    restart: unless-stopped
+    environment:
+      - PUID=$PUID_DOCKER
+      - PGID=$PGID_DOCKER
+      - TZ=$TZ
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ${DOCKER_VOLUMES}/prometheus:/etc/prometheus/
+      - ${DOCKER_VOLUMES}/prometheus/data:/prometheus
+    ports:
+      - 9090:9090
+    networks:
+      - data_net
