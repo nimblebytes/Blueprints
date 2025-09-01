@@ -4,7 +4,7 @@ services:
   vaultwarden:
     image: vaultwarden/server:${IMAGE_TAG:-latest}
     container_name: "${CONTAINER_NAME:-vaultwarden}"
-    user: ${DOCKER_PUID:?}:${DOCKER_PGID:?}
+    user: ${PUID_DOCKER:?}:${PGID_DOCKER:?}
     ports:
       - "${HOST_IP:?}:9980:80"
     restart: unless-stopped
