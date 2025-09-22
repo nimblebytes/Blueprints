@@ -1,0 +1,44 @@
+## traefik_minimal.yml
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+  
+api:
+  dashboard: true                       ## Enable dashboard
+  disabledashboardad: true              ## Disable the Ad within the dashboard
+
+providers:
+  docker:                               ## Docker provider for dynamic configurations
+    exposedByDefault: false             ## Expose containers by default
+    watch: true                         ## Watch for docker events
+  file: 
+    directory: /config                  ## File provider for dynamic configuration
+    watch: true                         ## Continuously monitor the folder for changes
+
+
+entrypoints:
+  http-internal:                        ## Network isolation: Entrypoint only for internal network
+    address: ":80"
+    
+  https-internal:                       ## Network isolation: Entrypoint only for internal network
+    address: ":443"
+    http:
+      tls: {}                           ## Use the default Traefik certs
+
+          
+log:
+  format: common               ## Options: json, common
+  level: DEBUG                 ## Options: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+
+## Enable logging to the domain/proxy server
+accessLog:
+  bufferingSize: 100           ## How many lines to buffer
+  fields:
+    names:
+      StartUTC: drop           ## Drop UTC, so that the local time and timezone (TZ) is displayed in the access log
+  filePath: /var/log/traefik_access.log
+  filters:
+    statusCodes:               ## Which status code access log to keep
+      - 400-499
+  format: common               ## Options: json, common

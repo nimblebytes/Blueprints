@@ -1,0 +1,26 @@
+http:                                                       ## http service (options: http, tcp,  udp)
+  routers:
+    docktopia:                                              ## Name of the router
+      entryPoints:                       
+      ## List of entry points to match against 
+      ## All http request are automatically redirected to https. Use only https-* entrypoint to avoid 404 pages
+        - https-internal                                    ## Service is available internally
+        - https-external                                    ## Service is available externally (internet)      
+      rule: "Host(`<SERVICE.MYDOMIAN.EXAMPLE.COM>`)"        ## What rules to match against
+      # priority: 200                                         ## Lower number are matched first. If not provided the rule length is used as priority
+      service: example-Service                              ## The name of the service to link to (see below)
+      tls:
+        certResolver: letsencrypt                           ## Which certificate resolver to use               
+          
+  services:
+    example-Service:                                        ## Name of the service 
+      loadBalancer:
+        servers:                         
+          - url: "<HTTP_OR HTTPS>://<HOST_DOMAIN_OR_IP>:<SERVICE_PORT>/"  ## Internal or external url where to find the service
+        serversTransport: example-Transport                 ## Need a specific server transport config, as the backend server is only reachable over HTTPS
+          
+  serversTransports:
+    example-Transport:                                      ## Name of the server transport
+      insecureSkipVerify: true                              ## Need to ignore security errors. The backend server has its own TLS certificate, and we do not control the CA cert
+      serverName: "<HOST.DOMAIN.EXAMPLE.COM>"               ## Not sure what this option actually does
+                

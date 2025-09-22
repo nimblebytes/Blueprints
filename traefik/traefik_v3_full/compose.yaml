@@ -1,0 +1,88 @@
+name: traefik_stack
+
+########################### NETWORKS
+networks:
+  proxy:
+    external: true
+
+########################### SECRETS
+secrets:
+  cloudflare_email:
+    file: ${DOCKER_SECRETS:?}/cloudflare_email
+  cloudflare_api_key:
+    file: ${DOCKER_SECRETS:?}/cloudflare_api
+
+########################### SERVICES
+services:
+  traefik:
+    image: "traefik:${IMAGE_TAG:-latest}"
+    container_name: "${CONTAINER_NAME:-traefik}"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+    ports:
+      - "80:80"        ## http-internal
+      - "443:443"      ## https-internal
+      - "10080:10080"  ## http-external 
+      - "10443:10443"  ## https-external      
+      
+    environment: 
+      - PUID=${PUID_DOCKER:?}
+      - PGID=${PGID_DOCKER:?}
+      - TZ=${TZ:?}
+      - CF_API_EMAIL_FILE=/run/secrets/cloudflare_email
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cloudflare_api_key  ## API token with DNS:Edit permission
+      - CLOUDFLARE_HTTP_TIMEOUT=60
+      - CLOUDFLARE_POLLING_INTERVAL=600
+      - CLOUDFLARE_PROPAGATION_TIMEOUT=600
+      - CLOUDFLARE_TTL=600
+    
+    ## Required when using a socket proxy to access the docker socket. Use either "environment", or "command" or "static config file"
+    # environment:
+    #   - TRAEFIK_PROVIDERS_DOCKER_ENDPOINT="tcp://[Socket_Proxy_Container_Name]:2375"    ## socket proxy to use
+    #   - TRAEFIK_PROVIDERS_DOCKER_NETWORK=[Proxy_Network_Name]  ## The name of the network to use for service discovery (do not put the socket proxy on this network)
+    # command: 
+    #   - "--providers.docker.endpoint=tcp://[Socket_Proxy_Container_Name]:2375"    ## socket proxy to use
+    #   - "--providers.docker.network=[Proxy_Network_Name]"           ## The network name to use for service discovery (do not put the socket proxy on this network)
+    # Update the [Static Config File]. Insert the vaules at "providers > docker > endpoint"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"          ## For normal Docker installs (Root)
+      # - ${XDG_RUNTIME_DIR}/docker.sock:/var/run/docker.sock     ## For Docker Rootless connects
+      
+      #### Config files/folders to control traefik 
+      - "${CONTAINER_CONFIG:?}/traefik_static_config.yml:/traefik.yml:ro"
+      - "${CONTAINER_CONFIG:?}/dynamic_config.d:/config:ro"
+
+      #### Dynamic files/folders modified by traefik
+      - "${CONTAINER_VOLUME:?}/acme.json:/acme.json"      
+      - "${CONTAINER_VOLUME:?}/traefik_access.log:/var/log/traefik_access.log"
+      # - "${CONTAINER_VOLUME:?}/traefik.log:/var/log/traefik.log"         ## Disabled within "traefik.yml" config file, so that logs are viewable/accessible through Docker logs or Portainer.
+      - "${DOCKER_SECRETS}/.htpasswd:/shared/.htpasswd"               ## Only needed for the "auth-basic-traefik" middleware in the dynamic config; breaks services if needed and not present. Double check config, else remove.
+    secrets:
+      - cloudflare_email
+      - cloudflare_api_key
+      
+    labels:
+      # Traefik Dashboard
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOSTNAME:?}.${DOMAIN_NAME:?}`)" 
+      - "traefik.http.routers.traefik.entrypoints=https-internal"    ## Only available for the internal network
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt_dns"  ## Options: letsencrypt_testing; letsencrypt; letsencrypt_dns 
+      - "traefik.http.routers.traefik.middlewares=auth-basic@docker"
+      - "traefik.http.middlewares.auth-basic.basicauth.users=user:$$apr1$$bvj3f2o0$/01DGlduxK4AqRsTwHnvc1"  ## (Apache) user - mystrongpassword
+
+  whoami:
+    image: traefik/whoami:v1.10.2
+    container_name: "whoami"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.${HOSTNAME:?}.${DOMAIN_NAME:?}`) || (Host(`${HOSTNAME:?}.${DOMAIN_NAME:?}`) || PathPrefix(`/whoami`))"
+      - "traefik.http.routers.whoami.priority=5"
+      - "traefik.http.routers.whoami.entrypoints=https-internal"     ## Only available for the internal network
+      - "traefik.http.routers.whoami.tls.certresolver=letsencrypt_dns"
+     

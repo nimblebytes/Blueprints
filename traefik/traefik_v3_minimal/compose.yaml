@@ -1,0 +1,32 @@
+########################### SERVICES
+services:
+  traefik:
+    image: "traefik:v3.0.3"
+    restart: unless-stopped
+    ports:
+      - "80:80"           ## http-internal
+      - "443:443"        ## https-internal
+    environment: 
+      - PUID=${PUID_DOCKER:?}
+      - PGID=${PGID_DOCKER:?}
+      - TZ=${TZ:?}
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+      #### Config files/folders to control traefik      
+      - "${CONTAINER_CONFIG:?}/dynamic_config:/config:ro"      
+      - "${CONTAINER_CONFIG:?}/traefik_minimal.yml:/traefik.yml:ro"   ## Use the minimal traefik config.
+
+      #### Dynamic files/folders modified by traefik
+      - "${DOCKER_VOLUMES:?}/acme.json:/acme.json"
+      - "${DOCKER_VOLUMES:?}/traefik_access.log:/var/log/traefik_access.log"
+      # - "${DOCKER_VOLUMES:?}./traefik.log:/var/log/traefik.log"       ## Disabled within "traefik.yml" config file, so that logs are viewable/accessible through Docker logs or Portainer.      
+ 
+    labels:
+      # Traefik Dashboard
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_NAME:?}`)"
+      - "traefik.http.routers.traefik.entrypoints=http-internal"      ## Only available for the internal network
+      - "traefik.http.routers.traefik.service=api@internal"  
+      
