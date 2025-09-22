@@ -1,0 +1,40 @@
+########################### STACK PROPERTIES
+name: "pihole-macvlan"
+
+########################### NETWORKS
+networks:
+  dmz_macvlan:
+    name: dmz_macvlan
+    external: true
+      
+########################### SECRETS
+secrets:
+  webpassword:
+    file: ${DOCKER_SECRETS:?}/pihole_webui_password   ## Only needed during container creation
+
+########################### SERVICES
+services:
+  pihole:
+    image: pihole/pihole:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-pihole-macvlan}
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
+    ## Recommended but not required (DHCP needs NET_ADMIN):  https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    # cap_add:
+    #   - NET_ADMIN
+    # mac_address: 02:42:aa:bb:cc:dd                ## (Optional) Define a specific MacAddress, if the network switch does allow multiple IPs to a single MacAddress
+    networks:
+      dmz_macvlan:
+        ipv4_address: ${CONTAINER_IP_MACVLAN:?}
+    ## No ports declaration needed as the container has its own IP address on the MacVLAN network
+    ## Open ports will be: DNS: 53 (tcp/udp), DHCP: 67 (UDP), WebUI: 80 (tcp)       
+
+
+    env_file: 
+      - .env.pihole
+    secrets:
+      - webpassword                               ## Password is only set during container creation. Changing password and restarting does not work.
+    volumes:
+      - ${CONTAINER_VOLUME:?}/pihole:/etc/pihole
+      - ${CONTAINER_VOLUME:?}/dnsmasq.d:/etc/dnsmasq.d
+      - ${CONTAINER_VOLUME:?}/pihole.log:/var/log/pihole.log

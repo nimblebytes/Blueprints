@@ -1,0 +1,35 @@
+########################### STACK PROPERTIES
+name: "pihole-dns"
+
+########################### SECRETS
+secrets:
+  webpassword:
+    file: ${DOCKER_SECRETS:?}/pihole_webui_password   ## Only needed during container creation
+
+########################### SERVICES      
+services:
+  pihole:
+    image: pihole/pihole:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-pihole}
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
+    ## Recommended but not required (DHCP needs NET_ADMIN):  https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    # cap_add:
+    #   - NET_ADMIN
+    ports:
+      - "${CONTAINER_IP}:53:53/tcp"
+      - "${CONTAINER_IP}:53:53/udp"
+      # - "${CONTAINER_IP}:67:67/udp"               ## Only required if you are using Pi-hole as your DHCP server
+      - "${CONTAINER_IP}:8080:80/tcp"
+    environment:
+      - PUID=${PUID_DOCKER}
+      - PGID=${PGID_DOCKER}        
+    env_file: 
+      - .env.pihole
+    secrets:
+      - webpassword                               ## Password is only set during container creation. Changing password and restarting does not work.
+    volumes:
+      - ${CONTAINER_VOLUME:?}/pihole:/etc/pihole
+      - ${CONTAINER_VOLUME:?}/dnsmasq.d:/etc/dnsmasq.d
+      # - ${CONTAINER_VOLUME:?}/pihole.log:/var/log/pihole.log
+
